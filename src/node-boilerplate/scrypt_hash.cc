@@ -252,7 +252,19 @@ Hash(const Arguments& arguments) {
 //
 // Constructor For Object Exposed To JavaScript
 //
-Handle<Value>
+
+NAN_METHOD(CreateHashFunction) {
+	NanEscapableScope();
+
+	Local<ObjectTemplate> hash = ObjectTemplate::New();
+	hash->SetCallAsFunctionHandler(Hash);
+	hash->Set(String::New("config"), CreateScryptConfigObject("hash"), v8::ReadOnly);
+
+	return NanEscapeScope(hash->NewInstance());
+}
+
+
+/*Handle<Value>
 CreateHashFunction(const Arguments& arguments) {
 	HandleScope scope;
 
@@ -261,4 +273,4 @@ CreateHashFunction(const Arguments& arguments) {
 	hash->Set(String::New("config"), CreateScryptConfigObject("hash"), v8::ReadOnly);
 
 	return scope.Close(hash->NewInstance());
-}
+}*/
