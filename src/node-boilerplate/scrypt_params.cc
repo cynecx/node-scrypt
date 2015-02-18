@@ -258,7 +258,16 @@ Params(const Arguments& args) {
 //
 // The Construtor That Is Exposed To JavaScript
 //
-Handle<Value>
+NAN_METHOD(CreateParameterFunction) {
+	NanEscapableScope();
+
+	Local<ObjectTemplate> verify = ObjectTemplate::New();
+	params->SetCallAsFunctionHandler(Verify);
+	params->Set(String::New("config"), CreateScryptConfigObject("params"), v8::ReadOnly);
+
+	return NanEscapeScope(params->NewInstance());
+}
+/*Handle<Value>
 CreateParameterFunction(const Arguments& arguments) {
 	HandleScope scope;
 
@@ -267,4 +276,4 @@ CreateParameterFunction(const Arguments& arguments) {
 	params->Set(String::New("config"), CreateScryptConfigObject("params"), v8::ReadOnly);
 
 	return scope.Close(params->NewInstance());
-}
+}*/

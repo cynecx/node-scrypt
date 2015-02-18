@@ -229,7 +229,16 @@ Verify(const Arguments& args) {
 //
 // Object Constructor That Is Exposed To JavaScript
 //
-Handle<Value>
+NAN_METHOD(CreateVerifyFunction) {
+	NanEscapableScope();
+
+	Local<ObjectTemplate> verify = ObjectTemplate::New();
+	verify->SetCallAsFunctionHandler(Verify);
+	verify->Set(String::New("config"), CreateScryptConfigObject("verify"), v8::ReadOnly);
+
+	return NanEscapeScope(verify->NewInstance());
+}
+/*Handle<Value>
 CreateVerifyFunction(const Arguments& arguments) {
 	HandleScope scope;
 
@@ -238,4 +247,4 @@ CreateVerifyFunction(const Arguments& arguments) {
 	verify->Set(String::New("config"), CreateScryptConfigObject("verify"), v8::ReadOnly);
 
 	return scope.Close(verify->NewInstance());
-}
+}*/

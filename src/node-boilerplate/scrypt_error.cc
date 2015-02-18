@@ -26,6 +26,7 @@
 */
 
 #include <node.h>
+#include <nan.h>
 #include <v8.h>
 #include <string>
 
@@ -36,7 +37,20 @@ using namespace v8;
 //
 // Error: Entry point from JavaScript land
 //
-Handle<Value> 
+NAN_METHOD(MakeErrorObject) {
+	NanEscapableScope();
+
+	Local<Value> errObj;
+	std::string errString = (args[1]->IsString()) ? std::string(*v8::String::Utf8Value(args[1]->ToString())) : "";
+	if (!args[0]->IsNumber()) {
+		errObj = Internal::MakeErrorObject(500, errString);
+	} else
+		errObj = Internal::MakeErrorObject((int)args[0]->ToInteger()->Value(), errString);
+
+	NanReturnValue(NanEscapeScope(errObj));
+}
+
+/*Handle<Value> 
 MakeErrorObject(const Arguments& args) {
 	HandleScope scope;
 	Local<Value> errObj;
@@ -47,4 +61,4 @@ MakeErrorObject(const Arguments& args) {
 		errObj = Internal::MakeErrorObject((int)args[0]->ToInteger()->Value(), errString);
 	
 	return scope.Close(errObj);
-}
+}*/

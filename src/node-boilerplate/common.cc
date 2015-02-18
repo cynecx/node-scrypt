@@ -31,6 +31,7 @@
 //
 
 #include <node.h>
+#include <nan.h>
 #include <v8.h>
 #include <node_buffer.h>
 #include <string>
@@ -76,6 +77,7 @@ namespace Internal {
 		}
 	}
 
+	/*
 	//
 	// Used for Buffer constructor, needed so that data can be used and not deep copied
 	// for an excellent example by Ben Noordhuis, see https://groups.google.com/forum/#!topic/nodejs/gz8YF3oLit0
@@ -83,10 +85,10 @@ namespace Internal {
 	void
 	FreeCallback(char* data, void* hint) {
 		delete [] data;
-	} 
+	} */ /// This is not needed anymore - consider removing it
+
 
 	} //end anon namespace
-
 	using namespace v8;
 
 	//
@@ -95,34 +97,34 @@ namespace Internal {
 	uint32_t
 	CheckScryptParameters(const Local<Object> &obj, std::string& errMessage) {
 		Local<Value> val;
-		if (!obj->Has(String::New("N"))) {
+		if (!obj->Has(NanNew<String>("N"))) {
 			errMessage = "N value is not present";
 			return PARMOBJ;
 		}
 
-		if (!obj->Has(String::New("r"))) {
+		if (!obj->Has(NanNew<String>("r"))) {
 			errMessage = "r value is not present";
 			return PARMOBJ;
 		}
 
-		if (!obj->Has(String::New("p"))) {
+		if (!obj->Has(NanNew<String>("p"))) {
 			errMessage = "p value is not present";
 			return PARMOBJ;
 		}
 
-		val = obj->Get(String::New("N"));
+		val = obj->Get(NanNew<String>("N"));
 		if (!val->IsNumber()) {
 			errMessage = "N must be a numeric value";
 			return PARMOBJ;
 		}
 		
-		val = obj->Get(String::New("r"));
+		val = obj->Get(NanNew<String>("r"));
 		if (!val->IsNumber()) {
 			errMessage = "r must be a numeric value";
 			return PARMOBJ;
 		}
 		
-		val = obj->Get(String::New("p"));
+		val = obj->Get(NanNew<String>("p"));
 		if (!val->IsNumber()) {
 			errMessage = "p must be a numeric value";
 			return PARMOBJ;
@@ -136,9 +138,9 @@ namespace Internal {
 	//
 	void
 	ScryptParams::operator=(const Local<Object> &rhs) {
-		this->N = (uint32_t)rhs->Get(String::New("N"))->ToInteger()->Value();
-		this->r = (uint32_t)rhs->Get(String::New("r"))->ToInteger()->Value();
-		this->p = (uint32_t)rhs->Get(String::New("p"))->ToInteger()->Value();
+		this->N = (uint32_t)rhs->Get(NanNew<String>("N"))->ToInteger()->Value();
+		this->r = (uint32_t)rhs->Get(NanNew<String>("r"))->ToInteger()->Value();
+		this->p = (uint32_t)rhs->Get(NanNew<String>("p"))->ToInteger()->Value();
 	}
 
 	//
@@ -146,9 +148,10 @@ namespace Internal {
 	//
 	Local<Value>
 	MakeErrorObject(int errorCode, std::string& errorMessage) {
+		NanScope();
 
 		if (errorCode) {
-			Local<Object> errorObject = Object::New();
+			Local<Object> errorObject = NanNew<Object>();
 			
 			switch (errorCode) {
 				case ADDONARG:
@@ -171,13 +174,13 @@ namespace Internal {
 					errorCode = 500;
 					errorMessage = "Unknown internal error - please report this error to make this module better. Details about error reporting can be found at the GitHub repo: https://github.com/barrysteyn/node-scrypt#report-errors";
 			}
-			errorObject->Set(String::NewSymbol("err_code"), Integer::New(errorCode));
-			errorObject->Set(String::NewSymbol("err_message"), String::New(errorMessage.c_str()));
+			errorObject->Set(NanNew<String>("err_code"), NanNew<Integer>(errorCode));
+			errorObject->Set(NanNew<String>("err_message"), NanNew<String>(errorMessage.c_str()));
 
-			return errorObject;
+			NanReturnValue(errorObject);
 		}
 	
-		return Local<Value>::New(Null());
+		return NanNull();
 	}
 
 	//
@@ -187,15 +190,16 @@ namespace Internal {
 	MakeErrorObject(int errorCode, int scryptErrorCode) {
 		assert(errorCode == SCRYPT);
 		if (scryptErrorCode) { 
-			Local<Object> errorObject = Object::New();
-			errorObject->Set(String::NewSymbol("err_code"), Integer::New(errorCode));
-			errorObject->Set(String::NewSymbol("err_message"), String::New("Scrypt error"));
-			errorObject->Set(String::NewSymbol("scrypt_err_code"),Integer::New(scryptErrorCode));
-			errorObject->Set(String::NewSymbol("scrypt_err_message"),String::New(ScryptErrorDescr(scryptErrorCode).c_str()));
+			Local<Object> errorObject = NanNew<Object>();
+			errorObject->Set(NanNew<String>("err_code"), NanNew<Integer>(errorCode));
+			errorObject->Set(NanNew<String>("err_message"), NanNew<String>("Scrypt error"));
+			errorObject->Set(NanNew<String>("scrypt_err_code"),NanNew<Integer>(scryptErrorCode));
+			errorObject->Set(NanNew<String>("scrypt_err_message"),NanNew<String>(ScryptErrorDescr(scryptErrorCode).c_str()));
+			
 			return errorObject;
 		}
 
-		return Local<Value>::New(Null());
+		return NanNull();
 	}
 
 	//
@@ -203,12 +207,12 @@ namespace Internal {
 	//
 	void
 	CreateBuffer(Handle<Value> &buffer, size_t dataLength) {
-		node::Buffer *slowBuffer = node::Buffer::New(dataLength);
+		Local<Object> slowBuffer = NanNewBufferHandle(dataLength);
 
 		//Create the node JS "fast" buffer
-		Local<Object> globalObj = Context::GetCurrent()->Global();  
-		Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
-		Handle<Value> constructorArgs[3] = { slowBuffer->handle_, Integer::New((uint32_t)dataLength), Integer::New(0) };
+		Local<Object> globalObj = NanGetCurrentContext()->Global();  
+		Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(NanNew<String>("Buffer")));
+		Handle<Value> constructorArgs[3] = { slowBuffer, NanNew<Integer>((uint32_t)dataLength), NanNew<Integer>(0) };
 
 		//Create the "fast buffer"
 		buffer = bufferConstructor->NewInstance(3, constructorArgs);
@@ -219,12 +223,12 @@ namespace Internal {
 	//
 	void
 	CreateBuffer(Handle<Value> &buffer, char* data, size_t dataLength) {
-		node::Buffer *slowBuffer = node::Buffer::New(data, dataLength, FreeCallback, NULL);
+		Local<Object> slowBuffer = NanBufferUse(data, dataLength);
 
 		//Create the node JS "fast" buffer
-		Local<Object> globalObj = Context::GetCurrent()->Global();  
-		Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(String::New("Buffer")));
-		Handle<Value> constructorArgs[3] = { slowBuffer->handle_, Integer::New((uint32_t)dataLength), Integer::New(0) };
+		Local<Object> globalObj = NanGetCurrentContext()->Global();  
+		Local<Function> bufferConstructor = Local<Function>::Cast(globalObj->Get(NanNew<String>("Buffer")));
+		Handle<Value> constructorArgs[3] = { slowBuffer, NanNew<Integer>((uint32_t)dataLength), NanNew<Integer>(0) };
 
 		//Create the "fast buffer"
 		buffer = bufferConstructor->NewInstance(3, constructorArgs);

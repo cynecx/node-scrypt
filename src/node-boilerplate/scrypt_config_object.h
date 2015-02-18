@@ -27,7 +27,8 @@
 #ifndef _SCRYPT_CONFIG_OBJECT_H_
 #define _SCRYPT_CONFIG_OBJECT_H_
 
-Handle<Object>
-CreateScryptConfigObject(const char* = "");
+NAN_METHOD(CreateScryptConfigObject(const char* = ""));
+/*Handle<Object>
+CreateScryptConfigObject(const char* = "");*/
 
 #endif /*_SCRYPT_CONFIG_OBJECT_H_*/
