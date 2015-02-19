@@ -177,7 +177,7 @@ namespace Internal {
 			errorObject->Set(NanNew<String>("err_code"), NanNew<Integer>(errorCode));
 			errorObject->Set(NanNew<String>("err_message"), NanNew<String>(errorMessage.c_str()));
 
-			NanReturnValue(errorObject);
+			return errorObject;
 		}
 	
 		return NanNull();
