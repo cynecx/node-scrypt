@@ -53,7 +53,7 @@ struct KDFInfo {
 
 	//Async Persistent Values
 	Persistent<Function> callback;
-	Handle<Value> key, salt, hashBuffer;
+	Persistent<Value> key, salt, hashBuffer;
 
 	//Custom data for scrypt
 	int result;
@@ -70,19 +70,19 @@ struct KDFInfo {
 		saltSize = static_cast<node::encoding>(config->Get(NanNew<String>("defaultSaltSize"))->ToUint32()->Value());
 		outputLength = static_cast<node::encoding>(config->Get(NanNew<String>("outputLength"))->ToUint32()->Value());
 
-		callback.Clear(); 
-		key.Clear(); 
-		salt.Clear(); 
-		hashBuffer.Clear(); 
+		NanDisposePersistent(callback); 
+		NanDisposePersistent(key); 
+		NanDisposePersistent(salt); 
+		NanDisposePersistent(hashBuffer); 
 	}
 
 	~KDFInfo() {
 		if (!callback.IsEmpty()) {
-			Persistent<Value>(key).Dispose();
-			if (this->saltPersist) Persistent<Value>(salt).Dispose();
-			Persistent<Value>(hashBuffer).Dispose();
+			NanDisposePersistent(key);
+			if (this->saltPersist) NanDisposePersistent(salt);
+			NanDisposePersistent(hashBuffer);
 		}
-		callback.Dispose();
+		NanDisposePersistent(callback);
 	}
 };
 
@@ -90,7 +90,7 @@ struct KDFInfo {
 // Validates and assigns arguments from JS land. Also determines if function is async or sync
 //
 int 
-AssignArguments(const Arguments& args, std::string& errorMessage, KDFInfo &kdfInfo) {
+AssignArguments(_NAN_METHOD_ARGS_TYPE args, std::string& errorMessage, KDFInfo &kdfInfo) {
 	uint8_t scryptParameterParseResult = 0;
 	if (args.Length() < 2) {
 		errorMessage = "at least two arguments are needed - key and a json object representing the scrypt parameters";
@@ -265,17 +265,17 @@ KDFAsyncWork(uv_work_t* req) {
 //
 // KDF: Parses arguments and determines what type (sync or async) this function is
 //
-Handle<Value> 
-KDF(const Arguments& args) {
+NAN_METHOD(KDF) {
+	NanEscapableScope();
+
 	uint8_t parseResult = 0;
-	HandleScope scope;
 	std::string validateMessage;
 	KDFInfo* kdfInfo = new KDFInfo(Local<Object>::Cast(args.Holder()->Get(String::New("config"))));
 	Local<Value> kdf;
 
 	//Assign and validate arguments
 	if ((parseResult = AssignArguments(args, validateMessage, *kdfInfo))) {
-		ThrowException(
+		NanThrowError(
 			Internal::MakeErrorObject(parseResult, validateMessage)
 		);
 	} else {
@@ -306,7 +306,7 @@ KDF(const Arguments& args) {
 		delete kdfInfo;
 	}
 
-	return scope.Close(kdf);
+	NanReturnValue(kdf);
 }
 
 } //end of unnamed namespace
@@ -324,16 +324,3 @@ NAN_METHOD(CreateKeyDerivationFunction) {
 
 	return NanEscapeScope(kdf->NewInstance());
 }
-
-/*Handle<Value>
-CreateKeyDerivationFunction(const Arguments& arguments) {
-    HandleScope scope;
-
-
-
-    Local<ObjectTemplate> kdf = ObjectTemplate::New();
-    kdf->SetCallAsFunctionHandler(KDF);
-    kdf->Set(String::New("config"), CreateScryptConfigObject("kdf"), v8::ReadOnly);
-
-    return scope.Close(kdf->NewInstance());
-}*/
