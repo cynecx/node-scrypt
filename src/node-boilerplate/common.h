@@ -38,7 +38,7 @@ const uint8_t CONFIG=5; //Scrypt generated errors
 #define BUFFER_ENCODED(buffer, encoding) \
 	((encoding == node::BUFFER) \
             ? buffer \
-            : node::Encode(node::Buffer::Data(buffer), node::Buffer::Length(buffer), encoding))
+            : NanEncode(buffer, 10, encoding) //This needs to change in a big way
 
 namespace Internal {
 	//

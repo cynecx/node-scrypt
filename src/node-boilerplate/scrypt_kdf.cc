@@ -53,7 +53,7 @@ struct KDFInfo {
 
 	//Async Persistent Values
 	Persistent<Function> callback;
-	Persistent<Value> key, salt, hashBuffer;
+	Persistent<Object> key, salt, hashBuffer;
 
 	//Custom data for scrypt
 	int result;
@@ -111,11 +111,11 @@ AssignArguments(_NAN_METHOD_ARGS_TYPE args, std::string& errorMessage, KDFInfo &
 		} 
 
 		if (i > 1 && currentVal->IsFunction()) {
-			kdfInfo.callback = Persistent<Function>::New(Local<Function>::Cast(args[i]));
-			kdfInfo.key = Persistent<Value>::New(kdfInfo.key);
+			NanAssignPersistent(kdfInfo.callback, args[i].As<Function>());
+			//kdfInfo.key = Persistent<Value>::New(kdfInfo.key);
 			if (!kdfInfo.salt.IsEmpty()) {
 				kdfInfo.saltPersist = true;
-				kdfInfo.salt = Persistent<Value>::New(kdfInfo.salt);
+				//kdfInfo.salt = Persistent<Value>::New(kdfInfo.salt);
 			}
 
 			return 0;
@@ -127,9 +127,9 @@ AssignArguments(_NAN_METHOD_ARGS_TYPE args, std::string& errorMessage, KDFInfo &
 					return ADDONARG;
 				}
 				
-				kdfInfo.key = currentVal;
+				NanAssignPersistent(kdfInfo.key, NanNew<Object>(currentVal));
 				kdfInfo.key_ptr = node::Buffer::Data(currentVal);
-				kdfInfo.keySize = node::Buffer::Length(currentVal);
+				//kdfInfo.keySize = node::Buffer::Length(currentVal);
 
 				break;
 
@@ -168,9 +168,9 @@ AssignArguments(_NAN_METHOD_ARGS_TYPE args, std::string& errorMessage, KDFInfo &
 					return ADDONARG;
 				}
 				
-				kdfInfo.salt = currentVal;
+				NanAssignPersistent(kdfInfo.salt, NanNew<Object>(currentVal));
 				kdfInfo.salt_ptr = node::Buffer::Data(currentVal);
-				kdfInfo.saltSize = node::Buffer::Length(kdfInfo.salt);
+				//kdfInfo.saltSize = node::Buffer::Length(kdfInfo.salt);
 		}
 	}
 
@@ -182,13 +182,17 @@ AssignArguments(_NAN_METHOD_ARGS_TYPE args, std::string& errorMessage, KDFInfo &
 //
 void
 CreateJSONResult(Handle<Value> &result, KDFInfo* kdfInfo) {
-	Local<Object> resultObject = Object::New();
-	resultObject->Set(String::NewSymbol("hash"), BUFFER_ENCODED(kdfInfo->hashBuffer, kdfInfo->outputEncoding));
+	Local<Object> resultObject = NanNew<Object>();
+	//resultObject->Set(NanNew<String>("hash"), BUFFER_ENCODED(kdfInfo->hashBuffer, kdfInfo->outputEncoding));
 
 	if (kdfInfo->salt.IsEmpty()) {
-		Internal::CreateBuffer(kdfInfo->salt, kdfInfo->salt_ptr, kdfInfo->saltSize);
+		NanAssignPersistent(
+			kdfInfo->salt,
+			NanNewBufferHandle(kdfInfo->salt_ptr, kdfInfo->saltSize)
+		);
+		//Internal::CreateBuffer(kdfInfo->salt, );
 	}
-	resultObject->Set(String::NewSymbol("salt"), BUFFER_ENCODED(kdfInfo->salt, kdfInfo->outputEncoding));
+	//resultObject->Set(String::NewSymbol("salt"), BUFFER_ENCODED(kdfInfo->salt, kdfInfo->outputEncoding));
 
 	result = resultObject;
 }
@@ -199,7 +203,7 @@ CreateJSONResult(Handle<Value> &result, KDFInfo* kdfInfo) {
 void
 KDFSyncAfterWork(Handle<Value>& kdf, KDFInfo* kdfInfo) {
 	if (kdfInfo->result) { //There has been an error
-		ThrowException(
+		NanThrowError(
 			Internal::MakeErrorObject(SCRYPT,kdfInfo->result)
 		);
 	} else {
@@ -212,7 +216,8 @@ KDFSyncAfterWork(Handle<Value>& kdf, KDFInfo* kdfInfo) {
 //
 void 
 KDFAsyncAfterWork(uv_work_t *req) {
-	HandleScope scope;
+	NanScope();
+
 	KDFInfo* kdfInfo = static_cast<KDFInfo*>(req->data);
 	Local<Value> kdfResult;
 	uint8_t argc = (kdfInfo->result) ? 1 : 2;
@@ -226,7 +231,8 @@ KDFAsyncAfterWork(uv_work_t *req) {
 	};
 
 	TryCatch try_catch;
-	kdfInfo->callback->Call(Context::GetCurrent()->Global(), argc, argv);
+
+	NanMakeCallback(NanGetCurrentContext()->Global(), NanNew(kdfInfo->callback), argc, argv);
 	if (try_catch.HasCaught()) {
 		node::FatalException(try_catch);
 	}
@@ -270,7 +276,7 @@ NAN_METHOD(KDF) {
 
 	uint8_t parseResult = 0;
 	std::string validateMessage;
-	KDFInfo* kdfInfo = new KDFInfo(Local<Object>::Cast(args.Holder()->Get(String::New("config"))));
+	KDFInfo* kdfInfo = new KDFInfo(Local<Object>::Cast(args.Holder()->Get(NanNew<String>("config"))));
 	Local<Value> kdf;
 
 	//Assign and validate arguments
@@ -279,8 +285,11 @@ NAN_METHOD(KDF) {
 			Internal::MakeErrorObject(parseResult, validateMessage)
 		);
 	} else {
-		Internal::CreateBuffer(kdfInfo->hashBuffer, kdfInfo->outputLength);
-		kdfInfo->hashBuffer_ptr = node::Buffer::Data(kdfInfo->hashBuffer);
+		NanAssignPersistent(
+			kdfInfo->hashBuffer,
+			NanNewBufferHandle(kdfInfo->outputLength)
+		);
+		////kdfInfo->hashBuffer_ptr = node::Buffer::Data(kdfInfo->hashBuffer);
 
 		if (kdfInfo->callback.IsEmpty()) {
 			//Synchronous 
@@ -288,7 +297,10 @@ NAN_METHOD(KDF) {
 			KDFSyncAfterWork(kdf, kdfInfo);
 		} else {
 			//Asynchronous
-			kdfInfo->hashBuffer = Persistent<Value>::New(kdfInfo->hashBuffer);
+			NanAssignPersistent(
+				kdfInfo->hashBuffer,
+				kdfInfo->hashBuffer
+			);
 
 			//Work request 
 			uv_work_t *req = new uv_work_t();
@@ -320,7 +332,7 @@ NAN_METHOD(CreateKeyDerivationFunction) {
 
 	Local<ObjectTemplate> kdf = ObjectTemplate::New();
 	kdf->SetCallAsFunctionHandler(KDF);
-	kdf->Set(String::New("config"), CreateScryptConfigObject("kdf"), v8::ReadOnly);
+	kdf->Set(NanNew<String>("config"), CreateScryptConfigObject("kdf"), v8::ReadOnly);
 
 	return NanEscapeScope(kdf->NewInstance());
 }
