@@ -53,19 +53,19 @@ NAN_PROPERTY_SETTER(configSetter) {
 		std::transform(propertyValue.begin(), propertyValue.end(), propertyValue.begin(), ::tolower);
 		
 		if (propertyValue == "ascii") {
-			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(node::ASCII));
+			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(Nan::ASCII));
 		} else if (propertyValue == "utf8") {
-			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(node::UTF8));
+			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(Nan::UTF8));
 		} else if (propertyValue == "base64") {
-			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(node::BASE64));
+			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(Nan::BASE64));
 		} else if (propertyValue == "ucs2") {
-			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(node::UCS2));
+			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(Nan::UCS2));
 		} else if (propertyValue == "binary") {
-			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(node::BINARY));
+			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(Nan::BINARY));
 		} else if (propertyValue == "hex") {
-			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(node::HEX));
+			args.Holder()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(Nan::HEX));
 		} else {
-			args.This()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(node::BUFFER));
+			args.This()->SetHiddenValue(NanNew<String>(propertyString.c_str()), NanNew<Integer>(Nan::BUFFER));
 		}
 	}
 

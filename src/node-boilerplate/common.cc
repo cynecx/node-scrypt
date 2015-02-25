@@ -202,6 +202,7 @@ namespace Internal {
 		return NanNull();
 	}
 
+/*
 	//
 	// Create a "fast" NodeJS Buffer
 	//
@@ -233,16 +234,16 @@ namespace Internal {
 		//Create the "fast buffer"
 		buffer = bufferConstructor->NewInstance(3, constructorArgs);
 	}
-
+*/
 	//
 	// Transforms a string or string object into a node buffer
 	//
 	int
-	ProduceBuffer(Handle<Value>& argument, const std::string& argName, std::string& errorMessage, const node::encoding& encoding, bool checkEmpty) {
+	ProduceBuffer(Handle<Value>& argument, const std::string& argName, std::string& errorMessage, const Nan::Encoding& encoding, bool checkEmpty) {
 		size_t dataLength = 0;
 		char *data = NULL;
 
-		if (encoding == node::BUFFER && node::Buffer::HasInstance(argument->ToObject())) {
+		if (encoding == Nan::BUFFER && node::Buffer::HasInstance(argument->ToObject())) {
 			return 0;
 		}
 	
@@ -251,7 +252,7 @@ namespace Internal {
 			return 1;
 		}
 
-		if (encoding == node::BUFFER && !node::Buffer::HasInstance(argument->ToObject())) {
+		if (encoding == Nan::BUFFER && !node::Buffer::HasInstance(argument->ToObject())) {
 			errorMessage = argName + " must be a buffer as specified by config";
 			return 1;
 		}
@@ -261,10 +262,10 @@ namespace Internal {
 			Handle<Value> buffer;
 			size_t dataWritten = 0;
 
-			dataLength = node::DecodeBytes(argument, encoding);
+			dataLength = NanDecodeBytes(argument, encoding);
 			data = new char[dataLength];
-			CreateBuffer(buffer, data, dataLength);
-			dataWritten = node::DecodeWrite(data, dataLength, argument, encoding);
+			buffer = NanBufferUse(data, dataLength);
+			dataWritten = NanDecodeWrite(data, dataLength, argument, encoding);
 			assert(dataWritten == dataLength);
 
 			if (dataWritten != dataLength) {
